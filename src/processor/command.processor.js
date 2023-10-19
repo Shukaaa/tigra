@@ -1,5 +1,6 @@
 const {compileFile, compileFolder} = require("../compiler/compiler");
 const fs = require("fs");
+const {timestamp, getTimestamp, setTimestamp} = require("../store/timestamp.store");
 
 const handleCommand = (cmdInformation) => {
 	switch (cmdInformation.args[0]) {
@@ -8,7 +9,7 @@ const handleCommand = (cmdInformation) => {
 			break;
 		case "compile":
 			const compilePath = cmdInformation.args[1];
-			cmdCompile(compilePath, cmdInformation.senderPath);
+			cmdCompile(compilePath, cmdInformation.senderPath)
 			break;
 		case "serve":
 			cmdServe();
@@ -22,7 +23,9 @@ function cmdNew() {
 	console.log("new")
 }
 
-function cmdCompile(compilePath, senderPath) {
+async function cmdCompile(compilePath, senderPath) {
+	let timestamp = Date.now();
+
 	if (!compilePath) {
 		console.log("You need to specify a file or folder to compile. See tigra --help for more information.");
 		return;
@@ -40,6 +43,10 @@ function cmdCompile(compilePath, senderPath) {
 	} else {
 		compileFolder(compilePath, compilePath, senderPath).catch((err) => {
 			console.log(err);
+		}).then(() => {
+			let newTimestamp = Date.now();
+			timestamp = newTimestamp - timestamp;
+			console.log("Compilation finished in " + timestamp + "ms.");
 		});
 	}
 }

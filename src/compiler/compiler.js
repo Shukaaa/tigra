@@ -9,6 +9,8 @@ const {removeEmptyLines} = require("../utils/formatting.utils");
 const {normalizeAndFormatRelativePaths} = require("../utils/path.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
+const {AttributesDefinedWithTheSameName} = require("../errors/AttributesDefinedWithTheSameName");
+const {RequiredAttributesNotPassed} = require("../errors/RequiredAttributesNotPassed");
 
 const compileFolder = (folderPath, exportPath, senderPath) => {
 	let newExportPath = senderPath + "\\out" + folderPath.replace(exportPath, "")
@@ -53,6 +55,8 @@ const compileFile = (filePath, exportPath, senderPath) => {
 	}).catch((err) => {
 		console.log(err);
 	});
+
+	console.log("a")
 };
 
 const rawCompile = async (data, filePathFolder) => {
@@ -110,6 +114,13 @@ const handleImportTag = (elem, filePathFolder, $) => {
 const handleTemplateUseTag = (elem, filePathFolder, $) => {
 	let src = elem.attribs.src
 
+	let attributeValues = {}
+	for (const [key, value] of Object.entries(elem.attribs)) {
+		if (key.startsWith("attr-")) {
+			attributeValues[key.replace("attr-", "")] = value;
+		}
+	}
+
 	$(elem).remove();
 
 	if (!src) {
@@ -131,8 +142,45 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
 			InvalidAmountOfTemplateOutlets.throw();
 		}
 
+		let customAttributes = {}
+		if (newHtml("attribute\\:define").length !== 0) {
+			newHtml("attribute\\:define").each((i, elem) => {
+				const name = elem.attribs.name;
+				const value = elem.attribs["default-value"];
+
+				if (Object.keys(customAttributes).includes(name)) {
+					AttributesDefinedWithTheSameName.throw();
+				}
+
+				customAttributes[name] = value;
+			});
+		}
+
 		newHtml("template\\:outlet").replaceWith($.html());
-		return newHtml.html();
+
+		let attributeDefines = newHtml("attribute\\:define");
+		for (let i = 0; i < attributeDefines.length; i++) {
+			const elem = attributeDefines[i];
+			$(elem).remove();
+		}
+
+		let html = newHtml.html();
+		for (const [key, value] of Object.entries(customAttributes)) {
+			const attributeValue = attributeValues[key];
+			let replaceValue = value;
+
+			if (value === undefined && attributeValue === undefined) {
+				RequiredAttributesNotPassed.throw();
+			}
+
+			if (attributeValue !== undefined) {
+				replaceValue = attributeValue;
+			}
+
+			html = html.replace("{{ " + key + " }}" , replaceValue);
+		}
+
+		return html;
 	});
 }
 
