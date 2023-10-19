@@ -1,0 +1,16 @@
+{
+  "name": "tigra",
+  "version": "0.0.1",
+  "description": "TypeScript Integration & Proficient HTML Rendering Approach",
+  "author": "Shukaaa",
+  "license": "ISC",
+  "main": "src/bin/tigra.js",
+  "bin": {
+    "tigra": "./src/bin/tigra.js"
+  },
+  "dependencies": {
+    "@liquify/prettify": "^0.5.5-beta.1",
+    "cheerio": "^1.0.0-rc.12",
+    "yargs": "^17.7.2"
+  }
+}
