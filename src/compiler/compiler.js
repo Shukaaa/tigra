@@ -6,7 +6,6 @@ const prettify = require("@liquify/prettify");
 const {InvalidFileTypeForTemplates} = require("../errors/InvalidFileTypeForTemplates");
 const {InvalidAmountOfTemplateOutlets} = require("../errors/InvalidAmountOfTemplateOutlets");
 const {removeEmptyLines} = require("../utils/formatting.utils");
-const {normalizeAndFormatRelativePaths} = require("../utils/path.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
 const path = require("path");
@@ -88,13 +87,9 @@ const handleImportTag = (elem, filePathFolder, $) => {
         InvalidFileTypeForImportMarkupTag.throw();
     }
 
-    const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
-    src = srcPathsResult.src
-    filePathFolder = srcPathsResult.filePathFolder
-
-    return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
+    return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
         if (src.endsWith(".tigra")) {
-            const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
+            const newHtml = cheerio.load(await rawCompile(importData, path.join(filePathFolder, src, "../")));
             $(elem).replaceWith(newHtml.html());
         }
 
@@ -123,16 +118,12 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
         NoSrcAttrForTemplateUse.throw();
     }
 
-    const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
-    src = srcPathsResult.src
-    filePathFolder = srcPathsResult.filePathFolder
-
     if (!src.endsWith(".tigra")) {
         InvalidFileTypeForTemplates.throw();
     }
 
-    return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
-        const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
+    return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
+        const newHtml = cheerio.load(await rawCompile(importData, path.join(filePathFolder, src, "../")));
 
         if (newHtml("template\\:outlet").length !== 1) {
             InvalidAmountOfTemplateOutlets.throw();
