@@ -10,130 +10,173 @@ const {normalizeAndFormatRelativePaths} = require("../utils/path.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
 const path = require("path");
-const {tigraError} = require("../logger/logger");
+const {tigraWarning} = require("../logger/logger");
 
 const compileFolder = async (folderPath, exportPath, senderPath, exportFolderName) => {
-	let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
+    let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
 
-	if (!fs.existsSync(newExportPath)) {
-		fs.mkdirSync(newExportPath);
-	}
+    if (!fs.existsSync(newExportPath)) {
+        fs.mkdirSync(newExportPath);
+    }
 
-	return new Promise((resolve, reject) => {
-		folderReader(folderPath).then(async (files) => {
-			for (let i = 0; i < files.length; i++) {
-				const file = files[i];
+    return new Promise((resolve, reject) => {
+        folderReader(folderPath).then(async (files) => {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
 
-				if (file.endsWith(".tigra")) {
-					compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"));
-					continue;
-				}
+                if (file.endsWith(".tigra")) {
+                    compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"));
+                    continue;
+                }
 
-				await compileFolder(folderPath + "\\" + file, exportPath, senderPath, exportFolderName)
-				resolve();
-			}
+                await compileFolder(folderPath + "\\" + file, exportPath, senderPath, exportFolderName)
+                resolve();
+            }
 
-			resolve();
-		}).catch(() => {
-			reject();
-		});
-	});
+            resolve();
+        }).catch(() => {
+            reject();
+        });
+    });
 };
 
 const compileFile = (filePath, exportPath) => {
-	fileReader(filePath).then(async (data) => {
-		let filePathFolder = filePath.split("\\");
-		filePathFolder.pop();
-		filePathFolder = filePathFolder.join("\\");
+    fileReader(filePath).then(async (data) => {
+        let filePathFolder = filePath.split("\\");
+        filePathFolder.pop();
+        filePathFolder = filePathFolder.join("\\");
 
-		data = await rawCompile(data, filePathFolder);
-		fileWriter(exportPath, data);
-	}).catch((err) => {
-		tigraError(err);
-	});
+        data = await rawCompile(data, filePathFolder);
+        fileWriter(exportPath, data);
+    }).catch((err) => {
+        console.log("Error while compiling " + filePath, err);
+    });
 };
 
 const rawCompile = async (data, filePathFolder) => {
-	const prettifyConfig = {
-		indent: 4,
-		language: "html"
-	}
+    const prettifyConfig = {
+        indent: 4,
+        language: "html"
+    }
 
-	let $ = cheerio.load(data);
+    let $ = cheerio.load(data);
 
-	const imports = $("import\\:markup");
-	for (let i = 0; i < imports.length; i++) {
-		const elem = imports[i];
-		await handleImportTag(elem, filePathFolder, $);
-	}
+    const imports = $("import\\:markup");
+    for (let i = 0; i < imports.length; i++) {
+        const elem = imports[i];
+        await handleImportTag(elem, filePathFolder, $);
+    }
 
-	const templateUses = $("template\\:use");
-	if (templateUses.length >= 1) {
-		const elem = templateUses[0];
-		const html = await handleTemplateUseTag(elem, filePathFolder, $);
-		return removeEmptyLines(await prettify.format(html, prettifyConfig));
-	} else {
-		return removeEmptyLines(await prettify.format($.html(), prettifyConfig));
-	}
+    const templateUses = $("template\\:use");
+    if (templateUses.length >= 1) {
+        const elem = templateUses[0];
+        const html = await handleTemplateUseTag(elem, filePathFolder, $);
+        return removeEmptyLines(await prettify.format(html, prettifyConfig));
+    } else {
+        return removeEmptyLines(await prettify.format($.html(), prettifyConfig));
+    }
 }
 
 const handleImportTag = (elem, filePathFolder, $) => {
-	let src = elem.attribs.src
+    let src = elem.attribs.src
 
-	if (!src) {
-		NoSrcAttrForImportTag.throw();
-	}
+    if (!src) {
+        NoSrcAttrForImportTag.throw();
+    }
 
-	if (!src.endsWith(".html") && !src.endsWith(".tigra")) {
-		InvalidFileTypeForImportMarkupTag.throw();
-	}
+    if (!src.endsWith(".html") && !src.endsWith(".tigra")) {
+        InvalidFileTypeForImportMarkupTag.throw();
+    }
 
-	const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
-	src = srcPathsResult.src
-	filePathFolder = srcPathsResult.filePathFolder
+    const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
+    src = srcPathsResult.src
+    filePathFolder = srcPathsResult.filePathFolder
 
-	return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
-		if (src.endsWith(".tigra")) {
-			const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
-			$(elem).replaceWith(newHtml.html());
-		}
+    return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
+        if (src.endsWith(".tigra")) {
+            const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
+            $(elem).replaceWith(newHtml.html());
+        }
 
-		if (src.endsWith(".html")) {
-			$(elem).replaceWith(importData);
-		}
-	});
+        if (src.endsWith(".html")) {
+            $(elem).replaceWith(importData);
+        }
+    });
 }
 
 const handleTemplateUseTag = (elem, filePathFolder, $) => {
-	let src = elem.attribs.src
+    let src = elem.attribs.src
+    let customData = []
 
-	$(elem).remove();
+    for (let attr in elem.attribs) {
+        if (attr.startsWith("data-")) {
+            customData.push({
+                name: attr.replace("data-", ""),
+                value: elem.attribs[attr]
+            });
+        }
+    }
 
-	if (!src) {
-		NoSrcAttrForTemplateUse.throw();
-	}
+    $(elem).remove();
 
-	const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
-	src = srcPathsResult.src
-	filePathFolder = srcPathsResult.filePathFolder
+    if (!src) {
+        NoSrcAttrForTemplateUse.throw();
+    }
 
-	if (!src.endsWith(".tigra")) {
-		InvalidFileTypeForTemplates.throw();
-	}
+    const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
+    src = srcPathsResult.src
+    filePathFolder = srcPathsResult.filePathFolder
 
-	return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
-		const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
+    if (!src.endsWith(".tigra")) {
+        InvalidFileTypeForTemplates.throw();
+    }
 
-		if (newHtml("template\\:outlet").length !== 1) {
-			InvalidAmountOfTemplateOutlets.throw();
-		}
+    return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
+        const newHtml = cheerio.load(await rawCompile(importData, filePathFolder));
 
-		newHtml("template\\:outlet").replaceWith($.html());
-		return newHtml.html();
-	});
+        if (newHtml("template\\:outlet").length !== 1) {
+            InvalidAmountOfTemplateOutlets.throw();
+        }
+
+        newHtml("template\\:outlet").replaceWith($.html());
+
+        newHtml("template\\:data").each((i, elem) => {
+            const data = customData.find((data) => {
+                return data.name === elem.attribs.name;
+            });
+
+            if (data) {
+                newHtml(elem).replaceWith(data.value)
+            } else {
+                newHtml(elem).remove();
+                tigraWarning(`Template data ${elem.attribs.name} not found.`)
+            }
+        });
+
+        newHtml("meta[inject-title]").each((i, elem) => {
+            const data = customData.find((data) => {
+                return data.name === elem.attribs.name;
+            });
+
+            if (data) {
+                newHtml(elem).remove();
+
+                if (newHtml("title").length === 0) {
+                    newHtml("head").append("<title></title>");
+                }
+
+                newHtml("title").text(data.value);
+            } else {
+                newHtml(elem).remove();
+                tigraWarning(`Template data ${elem.attribs.name} not found.`)
+            }
+        });
+
+        return newHtml.html();
+    });
 }
 
 module.exports = {
-	compileFolder,
-	compileFile
+    compileFolder,
+    compileFile
 }
