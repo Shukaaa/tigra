@@ -5,12 +5,16 @@
   "author": "Shukaaa",
   "license": "ISC",
   "main": "src/bin/tigra.js",
+  "scripts": {
+    "dev-install": "npm install . -g"
+  },
   "bin": {
     "tigra": "./src/bin/tigra.js"
   },
   "dependencies": {
     "@liquify/prettify": "^0.5.5-beta.1",
     "cheerio": "^1.0.0-rc.12",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "join-path": "^1.1.1"
   }
 }

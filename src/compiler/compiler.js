@@ -9,9 +9,12 @@ const {removeEmptyLines} = require("../utils/formatting.utils");
 const {normalizeAndFormatRelativePaths} = require("../utils/path.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
+const path = require("path");
 
-const compileFolder = (folderPath, exportPath, senderPath) => {
-	let newExportPath = senderPath + "\\out" + folderPath.replace(exportPath, "")
+const compileFolder = (folderPath, exportPath, senderPath, exportFolderName) => {
+	let newExportPath = senderPath + "\\" + exportFolderName + folderPath.replace(exportPath, "")
+
+	console.log(exportFolderName);
 
 	if (!fs.existsSync(newExportPath)) {
 		fs.mkdirSync(newExportPath);
@@ -23,7 +26,7 @@ const compileFolder = (folderPath, exportPath, senderPath) => {
 				const file = files[i];
 
 				if (file.endsWith(".tigra")) {
-					compileFile(folderPath + "\\" + file, newExportPath + "\\" + file.replace(".tigra", ".html"), senderPath);
+					compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"), senderPath);
 					continue;
 				}
 
@@ -40,15 +43,11 @@ const compileFolder = (folderPath, exportPath, senderPath) => {
 
 const compileFile = (filePath, exportPath, senderPath) => {
 	fileReader(filePath).then(async (data) => {
-		const filePathFolders = filePath
-				.replace("./", "")
-				.replace(".\\", "")
-				.split("\\")
-				.slice(0, -1);
+		let filePathFolder = filePath.split("\\");
+		filePathFolder.pop();
+		filePathFolder = filePathFolder.join("\\");
 
-		const filePathFolder = filePathFolders.join("\\");
-
-		data = await rawCompile(data, senderPath + "\\" + filePathFolder);
+		data = await rawCompile(data, filePathFolder);
 		fileWriter(exportPath, data);
 	}).catch((err) => {
 		console.log(err);

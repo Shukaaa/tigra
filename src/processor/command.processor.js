@@ -1,5 +1,6 @@
 const {compileFile, compileFolder} = require("../compiler/compiler");
 const fs = require("fs");
+const path = require("path");
 
 const handleCommand = (cmdInformation) => {
 	switch (cmdInformation.args[0]) {
@@ -8,7 +9,13 @@ const handleCommand = (cmdInformation) => {
 			break;
 		case "compile":
 			const compilePath = cmdInformation.args[1];
-			cmdCompile(compilePath, cmdInformation.senderPath);
+			let compileFolderName = cmdInformation.options.outDir;
+
+			if (!compileFolderName) {
+				compileFolderName = "out";
+			}
+
+			cmdCompile(compilePath, cmdInformation.senderPath, compileFolderName);
 			break;
 		case "serve":
 			cmdServe();
@@ -22,7 +29,7 @@ function cmdNew() {
 	console.log("new")
 }
 
-function cmdCompile(compilePath, senderPath) {
+function cmdCompile(compilePath, senderPath, compileFolderName) {
 	if (!compilePath) {
 		console.log("You need to specify a file or folder to compile. See tigra --help for more information.");
 		return;
@@ -36,9 +43,9 @@ function cmdCompile(compilePath, senderPath) {
 			fs.mkdirSync(senderPath + "\\out");
 		}
 
-		compileFile(compilePath, (senderPath + "\\out\\" + fileName), senderPath);
+		compileFile(compilePath,  path.join(senderPath, compileFolderName, fileName), senderPath);
 	} else {
-		compileFolder(compilePath, compilePath, senderPath).catch((err) => {
+		compileFolder(compilePath, compilePath, senderPath, compileFolderName).catch((err) => {
 			console.log(err);
 		});
 	}
