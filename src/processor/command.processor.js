@@ -1,6 +1,9 @@
 const {compileFile, compileFolder} = require("../compiler/compiler");
 const fs = require("fs");
 const path = require("path");
+const colors = require('colors');
+const {tigraError, tigraInfo} = require("../logger/logger");
+colors.enable();
 
 const handleCommand = (cmdInformation) => {
 	switch (cmdInformation.args[0]) {
@@ -21,38 +24,40 @@ const handleCommand = (cmdInformation) => {
 			cmdServe();
 			break;
 		default:
-			console.log("Invalid command. Use tigra --help to see the available commands.");
+			tigraError("Invalid command. Use tigra --help to see the available commands.");
 	}
 }
 
 function cmdNew() {
-	console.log("new")
+	tigraInfo("Creating new Tigra project...");
 }
 
 function cmdCompile(compilePath, senderPath, compileFolderName) {
+	tigraInfo("Compiling...")
+
 	if (!compilePath) {
-		console.log("You need to specify a file or folder to compile. See tigra --help for more information.");
+		tigraError("No file or folder specified.")
 		return;
 	}
 
 	if (compilePath.endsWith(".tigra")) {
 		const fileName = compilePath.split("\\")[compilePath.split("\\").length - 1].toString().replace(".tigra", ".html");
 
-		if (!fs.existsSync(senderPath + "\\out")) {
-			console.log("Creating out folder...");
-			fs.mkdirSync(senderPath + "\\out");
+		if (!fs.existsSync(senderPath + "\\" + compileFolderName)) {
+			tigraInfo("Creating folder " + compileFolderName + " in " + senderPath + "...");
+			fs.mkdirSync(senderPath + "\\" + compileFolderName);
 		}
 
 		compileFile(compilePath,  path.join(senderPath, compileFolderName, fileName), senderPath);
 	} else {
 		compileFolder(compilePath, compilePath, senderPath, compileFolderName).catch((err) => {
-			console.log(err);
+			tigraError(err);
 		});
 	}
 }
 
 function cmdServe() {
-	console.log("serve")
+	tigraInfo("Serving...");
 }
 
 module.exports = {

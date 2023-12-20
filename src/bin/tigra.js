@@ -1,6 +1,9 @@
 #! /usr/bin/env node
 const yargs = require("yargs");
 const {handleCommand} = require("../processor/command.processor");
+const colors = require('colors');
+const {tigraInfo, tigraWarning, tigraLog, tigraError, tigraSuccess} = require("../logger/logger");
+colors.enable();
 
 const usage = "" +
 		"\nCreate a new Tigra project:\ntigra new <name>\n\n" +
@@ -20,5 +23,7 @@ const cmdInformation = {
 	options: cmdOptions,
 	senderPath: process.cwd()
 };
+
+console.log("🐯 Tigra CLI 🐯".bgYellow.underline);
 
 handleCommand(cmdInformation);

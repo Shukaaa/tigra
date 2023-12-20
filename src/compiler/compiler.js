@@ -10,11 +10,10 @@ const {normalizeAndFormatRelativePaths} = require("../utils/path.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
 const path = require("path");
+const {tigraError} = require("../logger/logger");
 
-const compileFolder = (folderPath, exportPath, senderPath, exportFolderName) => {
-	let newExportPath = senderPath + "\\" + exportFolderName + folderPath.replace(exportPath, "")
-
-	console.log(exportFolderName);
+const compileFolder = async (folderPath, exportPath, senderPath, exportFolderName) => {
+	let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
 
 	if (!fs.existsSync(newExportPath)) {
 		fs.mkdirSync(newExportPath);
@@ -26,11 +25,11 @@ const compileFolder = (folderPath, exportPath, senderPath, exportFolderName) => 
 				const file = files[i];
 
 				if (file.endsWith(".tigra")) {
-					compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"), senderPath);
+					compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"));
 					continue;
 				}
 
-				await compileFolder(folderPath + "\\" + file, exportPath, senderPath)
+				await compileFolder(folderPath + "\\" + file, exportPath, senderPath, exportFolderName)
 				resolve();
 			}
 
@@ -41,7 +40,7 @@ const compileFolder = (folderPath, exportPath, senderPath, exportFolderName) => 
 	});
 };
 
-const compileFile = (filePath, exportPath, senderPath) => {
+const compileFile = (filePath, exportPath) => {
 	fileReader(filePath).then(async (data) => {
 		let filePathFolder = filePath.split("\\");
 		filePathFolder.pop();
@@ -50,7 +49,7 @@ const compileFile = (filePath, exportPath, senderPath) => {
 		data = await rawCompile(data, filePathFolder);
 		fileWriter(exportPath, data);
 	}).catch((err) => {
-		console.log(err);
+		tigraError(err);
 	});
 };
 
@@ -85,13 +84,13 @@ const handleImportTag = (elem, filePathFolder, $) => {
 		NoSrcAttrForImportTag.throw();
 	}
 
-	const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
-	src = srcPathsResult.src
-	filePathFolder = srcPathsResult.filePathFolder
-
 	if (!src.endsWith(".html") && !src.endsWith(".tigra")) {
 		InvalidFileTypeForImportMarkupTag.throw();
 	}
+
+	const srcPathsResult = normalizeAndFormatRelativePaths(src, filePathFolder)
+	src = srcPathsResult.src
+	filePathFolder = srcPathsResult.filePathFolder
 
 	return fileReader(filePathFolder + "\\" + src).then(async (importData) => {
 		if (src.endsWith(".tigra")) {
@@ -100,7 +99,6 @@ const handleImportTag = (elem, filePathFolder, $) => {
 		}
 
 		if (src.endsWith(".html")) {
-			console.log("html");
 			$(elem).replaceWith(importData);
 		}
 	});
