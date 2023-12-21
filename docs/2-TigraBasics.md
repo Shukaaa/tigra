@@ -14,6 +14,16 @@ This will import the HTML file `components/footer/footer.html` and insert it at 
 
 > Note: Tigra's custom tags can not be used inside the head tag.
 
+### Importing Markdown files
+
+You can import Markdown files with the `import:markdown` tag, for example:
+
+```html
+<import:markdown src="../../README.md"></import:markdown>
+```
+
+This will import the Markdown file `README.md` translate it to HTML and insert it at this position.
+
 ### Importing Tigra files
 
 It's the same as importing HTML files:
@@ -22,7 +32,7 @@ It's the same as importing HTML files:
 <import:markup src="../components/footer/footer.tigra"></import:markup>
 ```
 
-## Share Data between Components
+## Share Data between Components (.tiagra files only)
 
 You can share data between components with an attribute that starts with `data-`, for example:
 

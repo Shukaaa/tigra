@@ -10,6 +10,8 @@ const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
 const path = require("path");
 const {tigraWarning} = require("../logger/logger");
+const {InvalidFileTypeForImportMarkdownTag} = require("../errors/InvalidFileTypeForImportMarkdownTag");
+const {marked} = require("marked");
 
 const compileFolder = async (folderPath, exportPath, senderPath, exportFolderName) => {
     let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
@@ -68,6 +70,12 @@ const rawCompile = async (data, filePathFolder) => {
     for (let i = 0; i < imports.length; i++) {
         const elem = imports[i];
         await handleImportTag(elem, filePathFolder, $);
+    }
+
+    const markdownImports = $("import\\:markdown");
+    for (let i = 0; i < markdownImports.length; i++) {
+        const elem = markdownImports[i];
+        await handleMarkdownImportTag(elem, filePathFolder, $);
     }
 
     const templateUses = $("template\\:use");
@@ -160,6 +168,24 @@ const handleImportTag = (elem, filePathFolder, $) => {
 
             $(elem).replaceWith(importData);
         }
+    });
+}
+
+const handleMarkdownImportTag = (elem, filePathFolder, $) => {
+    let src = elem.attribs.src
+
+    if (!src) {
+        NoSrcAttrForImportTag.throw();
+    }
+
+    console.log(src);
+
+    if (!src.endsWith(".md")) {
+        InvalidFileTypeForImportMarkdownTag.throw();
+    }
+
+    return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
+        $(elem).replaceWith(marked(importData));
     });
 }
 
