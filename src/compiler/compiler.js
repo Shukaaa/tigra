@@ -53,6 +53,10 @@ const compileFile = (filePath, exportPath) => {
 };
 
 const rawCompile = async (data, filePathFolder) => {
+    if (isCompiled(filePathFolder)) {
+        return getCompiled(filePathFolder);
+    }
+
     const prettifyConfig = {
         indent: 4,
         language: "html"
@@ -70,14 +74,56 @@ const rawCompile = async (data, filePathFolder) => {
     if (templateUses.length >= 1) {
         const elem = templateUses[0];
         const html = await handleTemplateUseTag(elem, filePathFolder, $);
-        return removeEmptyLines(await prettify.format(html, prettifyConfig));
+        const clearedHtml = removeEmptyLines(await prettify.format(html, prettifyConfig));
+
+        compiledFileCache.push({
+            path: filePathFolder,
+            html: clearedHtml
+        });
+
+        return clearedHtml
     } else {
-        return removeEmptyLines(await prettify.format($.html(), prettifyConfig));
+        const clearedHtml = removeEmptyLines(await prettify.format($.html(), prettifyConfig));
+
+        compiledFileCache.push({
+            path: filePathFolder,
+            html: clearedHtml
+        });
+
+        return clearedHtml
     }
+}
+
+const addCustomData = (customDataArr, elem) => {
+    for (let attr in elem.attribs) {
+        if (attr.startsWith("data-")) {
+            customDataArr.push({
+                name: attr.replace("data-", ""),
+                value: elem.attribs[attr]
+            });
+        }
+    }
+}
+
+let compiledFileCache = [];
+
+const isCompiled = (filePath) => {
+    return compiledFileCache.find((file) => {
+        return file.path === filePath;
+    });
+}
+
+const getCompiled = (filePath) => {
+    return compiledFileCache.find((file) => {
+        return file.path === filePath;
+    }).html;
 }
 
 const handleImportTag = (elem, filePathFolder, $) => {
     let src = elem.attribs.src
+
+    let customData = []
+    addCustomData(customData, elem)
 
     if (!src) {
         NoSrcAttrForImportTag.throw();
@@ -90,10 +136,28 @@ const handleImportTag = (elem, filePathFolder, $) => {
     return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
         if (src.endsWith(".tigra")) {
             const newHtml = cheerio.load(await rawCompile(importData, path.join(filePathFolder, src, "../")));
+
+            newHtml("import\\:data").each((i, elem) => {
+                const data = customData.find((data) => {
+                    return data.name === elem.attribs.name;
+                });
+
+                if (data) {
+                    newHtml(elem).replaceWith(data.value)
+                } else {
+                    newHtml(elem).remove();
+                    tigraWarning(`Import data ${elem.attribs.name} not found. [${src}]`)
+                }
+            });
+
             $(elem).replaceWith(newHtml.html());
         }
 
         if (src.endsWith(".html")) {
+            if (customData.length > 0) {
+                tigraWarning(`Custom data is not supported for HTML imports. [${src}]`)
+            }
+
             $(elem).replaceWith(importData);
         }
     });
@@ -101,16 +165,9 @@ const handleImportTag = (elem, filePathFolder, $) => {
 
 const handleTemplateUseTag = (elem, filePathFolder, $) => {
     let src = elem.attribs.src
-    let customData = []
 
-    for (let attr in elem.attribs) {
-        if (attr.startsWith("data-")) {
-            customData.push({
-                name: attr.replace("data-", ""),
-                value: elem.attribs[attr]
-            });
-        }
-    }
+    let customData = []
+    addCustomData(customData, elem)
 
     $(elem).remove();
 
@@ -129,8 +186,6 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
             InvalidAmountOfTemplateOutlets.throw();
         }
 
-        newHtml("template\\:outlet").replaceWith($.html());
-
         newHtml("template\\:data").each((i, elem) => {
             const data = customData.find((data) => {
                 return data.name === elem.attribs.name;
@@ -140,7 +195,7 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
                 newHtml(elem).replaceWith(data.value)
             } else {
                 newHtml(elem).remove();
-                tigraWarning(`Template data ${elem.attribs.name} not found.`)
+                tigraWarning(`Template data ${elem.attribs.name} not found. [${src}]`)
             }
         });
 
@@ -159,9 +214,11 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
                 newHtml("title").text(data.value);
             } else {
                 newHtml(elem).remove();
-                tigraWarning(`Template data ${elem.attribs.name} not found.`)
+                tigraWarning(`Template data ${elem.attribs.name} not found. [${src}]`)
             }
         });
+
+        newHtml("template\\:outlet").replaceWith($.html());
 
         return newHtml.html();
     });

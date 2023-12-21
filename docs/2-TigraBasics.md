@@ -7,7 +7,7 @@
 You can import HTML files with the `import` tag, for example:
 
 ```html
-<import:markup src="components/footer/footer.html"></import:markup>
+<import:markup src="../components/footer/footer.html"></import:markup>
 ```
 
 This will import the HTML file `components/footer/footer.html` and insert it at this position.
@@ -19,8 +19,34 @@ This will import the HTML file `components/footer/footer.html` and insert it at 
 It's the same as importing HTML files:
 
 ```html
-<import:markup src="components/footer/footer.tigra"></import:markup>
+<import:markup src="../components/footer/footer.tigra"></import:markup>
 ```
+
+## Share Data between Components
+
+You can share data between components with an attribute that starts with `data-`, for example:
+
+```html
+<import:markup src="../components/footer/footer.html" data-year="2023"></import:markup>
+```
+
+After that you can use the custom data attribute in the footer component with the `import:data` tag and the `name` attribute:
+
+```html
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <p>© <import:data name="year"></import:data> <a href="https://www.tigra.com.br" target="_blank">Tigra</a> - Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+```
+
+##
+
+```html
 
 ## Creating Templates
 
