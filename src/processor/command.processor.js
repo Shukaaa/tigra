@@ -20,9 +20,6 @@ const handleCommand = (cmdInformation) => {
 
 			cmdCompile(compilePath, cmdInformation.senderPath, compileFolderName);
 			break;
-		case "serve":
-			cmdServe();
-			break;
 		default:
 			tigraError("Invalid command. Use tigra --help to see the available commands.");
 	}
@@ -54,10 +51,6 @@ function cmdCompile(compilePath, senderPath, compileFolderName) {
 			tigraError(err);
 		});
 	}
-}
-
-function cmdServe() {
-	tigraInfo("Serving...");
 }
 
 module.exports = {

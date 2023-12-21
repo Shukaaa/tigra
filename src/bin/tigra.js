@@ -2,26 +2,31 @@
 const yargs = require("yargs");
 const {handleCommand} = require("../processor/command.processor");
 const colors = require('colors');
-const {tigraInfo, tigraWarning, tigraLog, tigraError, tigraSuccess} = require("../logger/logger");
 colors.enable();
 
-const usage = "" +
-		"\nCreate a new Tigra project:\ntigra new <name>\n\n" +
-		"Compile a Tigra project:\ntigra compile <file> or tigra compile <page-folder>\n\n" +
-		"Serve a Tigra project:\ntigra serve <file> or tigra serve <page-folder>";
+const npmPackage = require("../../package.json");
+const packageVersion = npmPackage.version;
+
+const usage =
+	"🐯 Tigra CLI - Help 🐯".bgYellow.underline + "\n" +
+    "\nCreate a new Tigra project: " + "tigra new <name>".bgYellow + "\n" +
+    "Compile a Tigra project: " + "tigra compile <file>".bgYellow + " or " + "tigra compile <page-folder>".bgYellow;
+
 yargs
-		.usage(usage)
-		//.option("l", {alias:"languages", describe: "List all supported languages.", type: "boolean", demandOption: false })
-		.help(true)
-		.argv;
+	.help(true)
+	.version(packageVersion)
+	.alias("v", "version")
+	.alias("h", "help")
+    .usage(usage)
+    .argv;
 
 const cmdOptions = yargs.argv;
 delete cmdOptions._;
 
 const cmdInformation = {
-	args: yargs.argv._,
-	options: cmdOptions,
-	senderPath: process.cwd()
+    args: yargs.argv._,
+    options: cmdOptions,
+    senderPath: process.cwd()
 };
 
 console.log("🐯 Tigra CLI 🐯".bgYellow.underline);
