@@ -32,12 +32,12 @@ It's the same as importing HTML files:
 <import:markup src="../components/footer/footer.tigra"></import:markup>
 ```
 
-## Share Data between Components (.tiagra files only)
+## Share Data between Components (.tigra files only)
 
 You can share data between components with an attribute that starts with `data-`, for example:
 
 ```html
-<import:markup src="../components/footer/footer.html" data-year="2023"></import:markup>
+<import:markup src="../components/footer/footer.tigra" data-year="2023"></import:markup>
 ```
 
 After that you can use the custom data attribute in the footer component with the `import:data` tag and the `name` attribute:
@@ -54,13 +54,9 @@ After that you can use the custom data attribute in the footer component with th
 </footer>
 ```
 
-##
-
-```html
-
 ## Creating Templates
 
-You can create templates with the `template` tag, for example:
+You can create templates by just creating a normal Tigra file. That has a `template:outlet` tag, for example:
 
 ```html
 <html lang="en">
