@@ -80,21 +80,21 @@ Now the name of the template data variable is `title`. We can use this variable 
     <title>Tigra Example</title>
 </head>
 <body>
-    <import:markup src="components/header/header.html"></import:markup>
+    <import:markup src="../components/header/header.html"></import:markup>
     <main class="container">
         <h1>
             <template:data name="title"></template:data>
         </h1>
         <template:outlet></template:outlet>
     </main>
-    <import:markup src="components/footer/footer.html"></import:markup>
+    <import:markup src="../components/footer/footer.html"></import:markup>
 </body>
 </html>
 ```
 
-## Change title of the page with template data
+## Change the title of the page with template data
 
-Tigra does not support tigra-tags inside the head tag. That's why we can't use the `template:data` tag inside the head tag. <br/>
+Tigra does not support tigra-tags inside the head. That's why we can't use the `template:data` tag inside the title tag. <br/>
 Instead we can use the `meta` tag for this special case:
 
 ```html
