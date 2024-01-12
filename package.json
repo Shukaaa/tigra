@@ -12,7 +12,6 @@
     "tigra": "./src/bin/tigra.js"
   },
   "dependencies": {
-    "@liquify/prettify": "^0.5.5-beta.1",
     "@node-minify/core": "^8.0.6",
     "@node-minify/sqwish": "^8.0.6",
     "@node-minify/uglify-js": "^8.0.6",
