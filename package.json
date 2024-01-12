@@ -13,10 +13,14 @@
   },
   "dependencies": {
     "@liquify/prettify": "^0.5.5-beta.1",
+    "@node-minify/core": "^8.0.6",
+    "@node-minify/sqwish": "^8.0.6",
+    "@node-minify/uglify-js": "^8.0.6",
     "cheerio": "^1.0.0-rc.12",
     "colors": "^1.4.0",
     "join-path": "^1.1.1",
     "marked": "^11.1.0",
+    "typescript": "^5.3.3",
     "yargs": "^17.7.2"
   }
 }

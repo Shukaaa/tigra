@@ -137,3 +137,18 @@ Instead we can use the `meta` tag for this special case:
 
 We can use the `inject-title` attribute to tell Tigra that this meta tag should be used to change the title of the page. <br/>
 The `name` attribute is the name of the template data variable.
+
+## Use TypeScript inside script-tags
+
+You can use TypeScript inside script-tags with the default `type="application/typescript"` attribute:
+
+> Like always: Please note that tigra can not be used inside head-tags
+
+```html
+<script type="application/typescript">
+    const a: number = 1;
+    const b: number = 2;
+    const c: number = a + b;
+    console.log(c);
+</script>
+```

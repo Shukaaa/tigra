@@ -2,16 +2,19 @@ const {fileReader, fileWriter, folderReader} = require("../utils/file.utils");
 const cheerio = require("cheerio");
 const {NoSrcAttrForImportTag} = require("../errors/NoSrcAttrForImportTag");
 const {InvalidFileTypeForImportMarkupTag} = require("../errors/InvalidFileTypeForImportMarkupTag");
-const prettify = require("@liquify/prettify");
 const {InvalidFileTypeForTemplates} = require("../errors/InvalidFileTypeForTemplates");
 const {InvalidAmountOfTemplateOutlets} = require("../errors/InvalidAmountOfTemplateOutlets");
 const {removeEmptyLines} = require("../utils/formatting.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
 const fs = require("fs");
 const path = require("path");
-const {tigraWarning} = require("../logger/logger");
+const {tigraWarning, tigraInfo} = require("../logger/logger");
 const {InvalidFileTypeForImportMarkdownTag} = require("../errors/InvalidFileTypeForImportMarkdownTag");
 const {marked} = require("marked");
+const minifySqwish = require("@node-minify/sqwish");
+const minify = require("@node-minify/core");
+const minifyUglifyJS = require("@node-minify/uglify-js");
+const ts = require("typescript");
 
 const compileFolder = async (folderPath, exportPath, senderPath, exportFolderName) => {
     let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
@@ -63,11 +66,6 @@ const rawCompile = async (data, filePathFolder) => {
         return getCompiled(filePathFolder);
     }
 
-    const prettifyConfig = {
-        indent: 4,
-        language: "html"
-    }
-
     let $ = cheerio.load(data);
 
     const imports = $("import\\:markup");
@@ -82,11 +80,30 @@ const rawCompile = async (data, filePathFolder) => {
         await handleMarkdownImportTag(elem, filePathFolder, $);
     }
 
+    const typescriptTaggedScriptTags = $("script[type='application/typescript']");
+    for (let i = 0; i < typescriptTaggedScriptTags.length; i++) {
+        const elem = typescriptTaggedScriptTags[i];
+        let typescript = elem.children[0].data;
+
+        const tsCompile = (typescript) => {
+            return ts.transpileModule(typescript, {
+                compilerOptions: {
+                    module: ts.ModuleKind.CommonJS
+                }
+            }).outputText;
+        }
+
+        elem.children[0].data = tsCompile(typescript);
+        delete elem.attribs.type;
+    }
+
     const templateUses = $("template\\:use");
     if (templateUses.length >= 1) {
+        await minifyTags($, filePathFolder);
         const elem = templateUses[0];
         const html = await handleTemplateUseTag(elem, filePathFolder, $);
-        const clearedHtml = removeEmptyLines(await prettify.format(html, prettifyConfig));
+
+        const clearedHtml = removeEmptyLines(html);
 
         compiledFileCache.push({
             path: filePathFolder,
@@ -95,7 +112,8 @@ const rawCompile = async (data, filePathFolder) => {
 
         return clearedHtml
     } else {
-        const clearedHtml = removeEmptyLines(await prettify.format($.html(), prettifyConfig));
+        await minifyTags($, filePathFolder);
+        const clearedHtml = removeEmptyLines($.html());
 
         compiledFileCache.push({
             path: filePathFolder,
@@ -103,6 +121,50 @@ const rawCompile = async (data, filePathFolder) => {
         });
 
         return clearedHtml
+    }
+}
+
+const minifyTags = async ($, filePathFolder) => {
+    const scripts = $("script");
+    for (let i = 0; i < scripts.length; i++) {
+        const elem = scripts[i];
+        if (elem.attribs.minify === "") {
+            let script = elem.children[0].data;
+
+            tigraInfo("Minifying JS at " + filePathFolder);
+
+            await minify({
+                compressor: minifyUglifyJS,
+                content: script
+            }).then((uglified) => {
+                elem.children[0].data = uglified;
+            }).catch((err) => {
+                console.log(err);
+            });
+        }
+
+        delete elem.attribs.minify;
+    }
+
+    const styles = $("style");
+    for (let i = 0; i < styles.length; i++) {
+        const elem = styles[i];
+        if (elem.attribs.minify === "") {
+            let style = elem.children[0].data;
+
+            tigraInfo("Minifying CSS at " + filePathFolder);
+
+            await minify({
+                compressor: minifySqwish,
+                content: style
+            }).then((uglified) => {
+                elem.children[0].data = uglified;
+            }).catch((err) => {
+                console.log(err);
+            });
+        }
+
+        delete elem.attribs.minify;
     }
 }
 
@@ -181,8 +243,6 @@ const handleMarkdownImportTag = (elem, filePathFolder, $) => {
     if (!src) {
         NoSrcAttrForImportTag.throw();
     }
-
-    console.log(src);
 
     if (!src.endsWith(".md")) {
         InvalidFileTypeForImportMarkdownTag.throw();
