@@ -48,7 +48,7 @@ function cmdCompile(compilePath, senderPath, compileFolderName) {
 		compileFile(compilePath,  path.join(senderPath, compileFolderName, fileName), senderPath);
 	} else {
 		compileFolder(compilePath, compilePath, senderPath, compileFolderName).catch((err) => {
-			tigraError(err);
+			console.log(err);
 		});
 	}
 }

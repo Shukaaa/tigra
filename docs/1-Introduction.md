@@ -8,10 +8,12 @@ It is a simple markup language that is built on top of HTML. It is designed for 
 
 Benefits of Tigra:
 - Import HTML or Tigra components / code
+- Import markdown files
 - Create Templates
+- Share Data between components and templates
+- minify script-tags and style-tags
 - use TypeScript inside script-tags (soon)
 - use SCSS inside style-tags (soon)
-- Import markdown files (soon)
 
 ## Installation
 

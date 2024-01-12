@@ -6,10 +6,8 @@ const tigraLog = (message) => {
     console.log(tigraPrefix("🐯", "white") + message);
 }
 
-const tigraError = (message, error = undefined) => {
+const tigraError = (message) => {
     console.log(tigraPrefix("❌ ", "red") + message.red);
-
-    if (error) console.log(error);
 }
 
 const tigraWarning = (message) => {

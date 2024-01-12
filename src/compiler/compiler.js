@@ -30,6 +30,10 @@ const compileFolder = async (folderPath, exportPath, senderPath, exportFolderNam
                     continue;
                 }
 
+                if (!fs.statSync(folderPath + "\\" + file).isDirectory()) {
+                    continue;
+                }
+
                 await compileFolder(folderPath + "\\" + file, exportPath, senderPath, exportFolderName)
                 resolve();
             }

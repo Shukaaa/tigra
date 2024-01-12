@@ -37,7 +37,7 @@ It's the same as importing HTML files:
 You can share data between components with an attribute that starts with `data-`, for example:
 
 ```html
-<import:markup src="../components/footer/footer.tigra" data-year="2023"></import:markup>
+<import:markup src="../components/footer/footer.tigra" data-year="2024"></import:markup>
 ```
 
 After that you can use the custom data attribute in the footer component with the `import:data` tag and the `name` attribute:
@@ -45,11 +45,7 @@ After that you can use the custom data attribute in the footer component with th
 ```html
 <footer>
     <div class="container">
-        <div class="row">
-            <div class="col-md-12">
-                <p>© <import:data name="year"></import:data> <a href="https://www.tigra.com.br" target="_blank">Tigra</a> - Todos os direitos reservados.</p>
-            </div>
-        </div>
+        <p>© <import:data name="year"></import:data> <a href="https://www.tigra.com.br" target="_blank">Tigra</a></p>
     </div>
 </footer>
 ```
