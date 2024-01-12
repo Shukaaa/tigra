@@ -4,25 +4,21 @@
 
 Tigra stands for TypeScript Integration & Proficient HTML Rendering Approach. <br/>
 
-It is a simple markup language that is built on top of HTML. It is designed for reusing HTML components and for writing HTML in a more concise way.
+It is a simple markup language that is built on top of HTML. It is designed for reusing HTML components and for writing HTML in a more concise way with some Quality of Life features.
 
 Benefits of Tigra:
 - Import HTML or Tigra components / code
+- Import markdown files
 - Create Templates
-- use TypeScript inside script-tags (soon)
+- Share Data between components and templates
+- minify script-tags and style-tags
+- use TypeScript inside script-tags
 - use SCSS inside style-tags (soon)
-- Import markdown files (soon)
 
 ## Installation
 
 ```sh
 npm install tigra
-```
-
-## Create a Tiagra example project
-
-```sh
-tigra new <projectName>
 ```
 
 ## Compiling

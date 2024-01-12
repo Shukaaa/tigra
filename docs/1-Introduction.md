@@ -12,7 +12,7 @@ Benefits of Tigra:
 - Create Templates
 - Share Data between components and templates
 - minify script-tags and style-tags
-- use TypeScript inside script-tags (soon)
+- use TypeScript inside script-tags
 - use SCSS inside style-tags (soon)
 
 ## Installation
