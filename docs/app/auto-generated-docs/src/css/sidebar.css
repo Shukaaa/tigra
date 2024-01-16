@@ -1,0 +1,33 @@
+:root {
+    --width: 20em;
+}
+
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--width);
+
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    padding: 1em;
+}
+
+#content-container {
+    padding-left: var(--width);
+}
+
+.sidebar-element-children {
+    padding-left: 1em;
+}
+
+@media (max-width: 768px) {
+    #sidebar {
+        display: none;
+    }
+
+    #content-container {
+        padding-left: 0;
+    }
+}

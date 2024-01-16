@@ -1,0 +1,22 @@
+{
+  "scripts": {
+    "dev": "concurrently --kill-others \"grunt dev\" \"vite\" -p none && grunt cleanup",
+    "build": "concurrently --kill-others \"grunt build\" -p none"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.1",
+    "grunt": "^1.6.1",
+    "vite": "^4.4.9"
+  },
+  "devDependencies": {
+    "grunt-contrib-clean": "^2.0.1",
+    "grunt-contrib-concat": "^2.1.0",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-cssmin": "^5.0.0",
+    "grunt-contrib-uglify": "^5.2.2",
+    "grunt-contrib-watch": "^1.1.0",
+    "grunt-markdown": "^0.7.0",
+    "grunt-prettify": "^0.4.0"
+  },
+  "name": "auto-generated-docs"
+}
