@@ -1,4 +1,4 @@
-const {fileReader, fileWriter, folderReader} = require("../utils/file.utils");
+const {fileReader} = require("../utils/file.utils");
 const cheerio = require("cheerio");
 const {NoSrcAttrForImportTag} = require("../errors/NoSrcAttrForImportTag");
 const {InvalidFileTypeForImportMarkupTag} = require("../errors/InvalidFileTypeForImportMarkupTag");
@@ -6,62 +6,15 @@ const {InvalidFileTypeForTemplates} = require("../errors/InvalidFileTypeForTempl
 const {InvalidAmountOfTemplateOutlets} = require("../errors/InvalidAmountOfTemplateOutlets");
 const {removeEmptyLines} = require("../utils/formatting.utils");
 const {NoSrcAttrForTemplateUse} = require("../errors/NoSrcAttrForTemplateUse");
-const fs = require("fs");
 const path = require("path");
-const {tigraWarning, tigraInfo} = require("../logger/logger");
+const {tigraWarning} = require("../logger/logger");
 const {InvalidFileTypeForImportMarkdownTag} = require("../errors/InvalidFileTypeForImportMarkdownTag");
 const {marked} = require("marked");
-const minifySqwish = require("@node-minify/sqwish");
-const minify = require("@node-minify/core");
-const minifyUglifyJS = require("@node-minify/uglify-js");
 const ts = require("typescript");
+const {addCustomData} = require("../utils/transpiler.utils");
+const {minifyTags} = require("./steps/minify-tags");
 
-const compileFolder = async (folderPath, exportPath, senderPath, exportFolderName) => {
-    let newExportPath = `${senderPath}\\${exportFolderName}${folderPath.replace(exportPath, "")}`;
-
-    if (!fs.existsSync(newExportPath)) {
-        fs.mkdirSync(newExportPath);
-    }
-
-    return new Promise((resolve, reject) => {
-        folderReader(folderPath).then(async (files) => {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
-                if (file.endsWith(".tigra")) {
-                    await compileFile(path.join(senderPath, folderPath, file), newExportPath + "\\" + file.replace(".tigra", ".html"));
-                    continue;
-                }
-
-                if (!fs.statSync(folderPath + "\\" + file).isDirectory()) {
-                    continue;
-                }
-
-                await compileFolder(folderPath + "\\" + file, exportPath, senderPath, exportFolderName)
-                resolve();
-            }
-
-            resolve();
-        }).catch(() => {
-            reject();
-        });
-    });
-};
-
-const compileFile = async (filePath, exportPath) => {
-    await fileReader(filePath).then(async (data) => {
-        let filePathFolder = filePath.split("\\");
-        filePathFolder.pop();
-        filePathFolder = filePathFolder.join("\\");
-
-        data = await rawCompile(data, filePathFolder, filePath, false)
-        fileWriter(exportPath, data);
-    }).catch((err) => {
-        console.log("Error while compiling " + filePath, err);
-    });
-};
-
-const simpleCompilingSteps = async ($, filePathFolder, filePath) => {
+const applySimpleTranspilingSteps = async ($, filePathFolder, filePath) => {
     const imports = $("import\\:markup");
     for (let i = 0; i < imports.length; i++) {
         const elem = imports[i];
@@ -95,8 +48,7 @@ const simpleCompilingSteps = async ($, filePathFolder, filePath) => {
 }
 
 let simpleCompileTemplateCache = [];
-
-const simpleCompile = async (data, filePath, filePathFolder) => {
+const simpleTranspile = async (data, filePath, filePathFolder) => {
     let foundEntry = simpleCompileTemplateCache.find((file) => {
         return file.path === filePath;
     });
@@ -107,7 +59,7 @@ const simpleCompile = async (data, filePath, filePathFolder) => {
 
     let $ = cheerio.load(data);
 
-    await simpleCompilingSteps($, filePathFolder, filePath);
+    await applySimpleTranspilingSteps($, filePathFolder, filePath);
 
     simpleCompileTemplateCache.push({
         path: filePath,
@@ -117,11 +69,11 @@ const simpleCompile = async (data, filePath, filePathFolder) => {
     return $.html();
 }
 
-const rawCompile = async (data, filePathFolder, filePath,  skipSimpleCompiling = false) => {
+const fullyTranspile = async (data, filePathFolder, filePath, skipSimpleCompiling = false) => {
     let $ = cheerio.load(data);
 
     if (!skipSimpleCompiling) {
-        await simpleCompilingSteps($, filePathFolder, filePath);
+        await applySimpleTranspilingSteps($, filePathFolder, filePath);
     }
 
     const templateUses = $("template\\:use");
@@ -131,61 +83,6 @@ const rawCompile = async (data, filePathFolder, filePath,  skipSimpleCompiling =
         return removeEmptyLines(html)
     } else {
         return removeEmptyLines($.html())
-    }
-}
-
-const minifyTags = async ($, filePathFolder, filePath) => {
-    const scripts = $("script");
-    for (let i = 0; i < scripts.length; i++) {
-        const elem = scripts[i];
-        if (elem.attribs.minify === "") {
-            let script = elem.children[0].data;
-
-            tigraInfo("Minifying JS at " + filePath);
-
-            await minify({
-                compressor: minifyUglifyJS,
-                content: script
-            }).then((uglified) => {
-                elem.children[0].data = uglified;
-            }).catch((err) => {
-                console.log(err);
-            });
-        }
-
-        delete elem.attribs.minify;
-    }
-
-    const styles = $("style");
-    for (let i = 0; i < styles.length; i++) {
-        const elem = styles[i];
-        if (elem.attribs.minify === "") {
-            let style = elem.children[0].data;
-
-            tigraInfo("Minifying CSS at " + filePath);
-
-            await minify({
-                compressor: minifySqwish,
-                content: style
-            }).then((uglified) => {
-                elem.children[0].data = uglified;
-            }).catch((err) => {
-                console.log(err);
-            });
-        }
-
-        delete elem.attribs.minify;
-    }
-}
-
-const addCustomData = (customDataArr, elem) => {
-    for (let attr in elem.attribs) {
-        if (attr.startsWith("data-")) {
-            customDataArr.push({
-                name: attr.replace("data-", ""),
-                value: elem.attribs[attr]
-            });
-        }
     }
 }
 
@@ -206,7 +103,7 @@ const handleImportTag = (elem, filePathFolder, $) => {
     return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
         if (src.endsWith(".tigra")) {
             const newHtml = cheerio.load(
-                await rawCompile(importData, path.join(filePathFolder, src, "../"), path.join(filePathFolder, src, "../"), true)
+                await fullyTranspile(importData, path.join(filePathFolder, src, "../"), path.join(filePathFolder, src, "../"), true)
             );
 
             newHtml("import\\:data").each((i, elem) => {
@@ -268,7 +165,7 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
     }
 
     return fileReader(path.join(filePathFolder, src)).then(async (importData) => {
-        const simpleCompiled = await simpleCompile(importData, path.join(filePathFolder, src), path.join(filePathFolder, src, "../"))
+        const simpleCompiled = await simpleTranspile(importData, path.join(filePathFolder, src), path.join(filePathFolder, src, "../"))
         const newHtml = cheerio.load(simpleCompiled);
 
         if (newHtml("template\\:outlet").length !== 1) {
@@ -314,6 +211,5 @@ const handleTemplateUseTag = (elem, filePathFolder, $) => {
 }
 
 module.exports = {
-    compileFolder,
-    compileFile
+    fullyTranspile
 }

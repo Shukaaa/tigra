@@ -1,8 +1,8 @@
-const {compileFile, compileFolder} = require("../compiler/compiler");
 const fs = require("fs");
 const path = require("path");
 const colors = require('colors');
-const {tigraError, tigraInfo} = require("../logger/logger");
+const {tigraError, tigraInfo, tigraSuccess} = require("../logger/logger");
+const {transpileFile, transpileFolder, triggerTranspileQueue} = require("../transpiler/transpileFiles");
 colors.enable();
 
 const handleCommand = (cmdInformation) => {
@@ -29,7 +29,7 @@ function cmdNew() {
 	tigraInfo("Creating new Tigra project...");
 }
 
-function cmdCompile(compilePath, senderPath, compileFolderName) {
+async function cmdCompile(compilePath, senderPath, compileFolderName) {
 	tigraInfo("Compiling...")
 
 	if (!compilePath) {
@@ -45,11 +45,13 @@ function cmdCompile(compilePath, senderPath, compileFolderName) {
 			fs.mkdirSync(senderPath + "\\" + compileFolderName);
 		}
 
-		compileFile(compilePath,  path.join(senderPath, compileFolderName, fileName), senderPath);
+		await transpileFile(compilePath, path.join(senderPath, compileFolderName, fileName), senderPath);
 	} else {
-		compileFolder(compilePath, compilePath, senderPath, compileFolderName).catch((err) => {
-			console.log(err);
-		});
+		transpileFolder(compilePath, compilePath, senderPath, compileFolderName).then(() => {
+			triggerTranspileQueue().then(() => {
+				tigraSuccess("Done!");
+			});
+		})
 	}
 }
 

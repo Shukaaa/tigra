@@ -1,5 +1,4 @@
 const fs = require('fs');
-const {tigraSuccess} = require("../logger/logger");
 
 const fileReader = (path) => {
 	return new Promise((resolve, reject) => {
@@ -13,7 +12,6 @@ const fileReader = (path) => {
 const fileWriter = (path, data) => {
 	fs.writeFile(path, data, (err) => {
 		if (err) throw err;
-		tigraSuccess("Compiled " + path);
 	});
 }
 
